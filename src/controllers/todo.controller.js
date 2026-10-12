@@ -9,6 +9,9 @@ import { Todo } from "../models/todo.model.js";
 export async function createTodo(req, res, next) {
   try {
     // Your code here
+    const data = req.body;
+    const todo = await Todo.create(data);
+    return res.status(201).json(todo);
   } catch (error) {
     next(error);
   }
@@ -23,17 +26,51 @@ export async function createTodo(req, res, next) {
 export async function listTodos(req, res, next) {
   try {
     // Your code here
+    const { page = 1, limit = 10, completed, priority, search } = req.query;
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+
+    filter = {};
+    if (completed !== undefined) filter.completed = completed === "true";
+    if (priority) filter.priority = priority;
+    if (search) filter.title = { $regex: search, $options: "i" };
+
+    const total = await Todo.countDocuments(filter);
+    const pages = Math.ceil(total / limitNum);
+
+    const todoList = await Todo.find(filter)
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
+    const paginatedData = {
+      data: todoList,
+      meta: {
+        total,
+        page,
+        limit,
+        pages,
+      },
+    };
+
+    return res.json(paginatedData)
   } catch (error) {
     next(error);
   }
 }
-
 /**
  * TODO: Get single todo by ID
  * - Return 404 if not found
  */
+
+// Dont know how to extract the todoId
 export async function getTodo(req, res, next) {
   try {
+    const id = req.params.id;
+    if (!id) return res.status(404);
+
+    const todo = await Todo.findById(id);
+
+    return res.status(200).json(todo);
+
     // Your code here
   } catch (error) {
     next(error);
@@ -47,6 +84,12 @@ export async function getTodo(req, res, next) {
  */
 export async function updateTodo(req, res, next) {
   try {
+    const id = req.params.id;
+    if (!id) return res.status(404);
+
+    const todo = await Todo.findByIdAndUpdate(id, req.body, { new: true, runValidators: true })
+    return res.status(200).json(todo);
+
     // Your code here
   } catch (error) {
     next(error);
@@ -60,6 +103,15 @@ export async function updateTodo(req, res, next) {
  */
 export async function toggleTodo(req, res, next) {
   try {
+    const id = req.params.id;
+    if (!id) return res.status(404);
+
+    const todo = await Todo.findById(id);
+    todo.completed = !todo.completed;
+
+    await Todo.save();
+
+    return res.status(201).json("Toggled the completed");
     // Your code here
   } catch (error) {
     next(error);
@@ -74,6 +126,11 @@ export async function toggleTodo(req, res, next) {
 export async function deleteTodo(req, res, next) {
   try {
     // Your code here
+    const id = req.params.id;
+    if (!id) return res.status(404);
+
+    const todo = await Todo.findByIdAndDelete(id);
+    return res.status(204).json(todo);
   } catch (error) {
     next(error);
   }

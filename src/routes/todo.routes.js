@@ -7,7 +7,6 @@ import {
   toggleTodo,
   deleteTodo,
 } from "../controllers/todo.controller.js";
-import { validateObjectId } from "../middlewares/validateObjectId.middleware.js";
 
 const router = express.Router();
 
@@ -22,6 +21,10 @@ const router = express.Router();
  * DELETE /:id           → deleteTodo (use validateObjectId middleware)
  */
 
-// Your routes here
-
+router.post("/", createTodo)
+router.get("/", listTodos)
+router.get("/:id", getTodo)
+router.patch("/:id", updateTodo)
+router.patch("/:id/toggle", toggleTodo)
+router.delete("/:id", deleteTodo)
 export default router;
