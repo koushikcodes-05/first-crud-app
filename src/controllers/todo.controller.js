@@ -1,3 +1,5 @@
+// Flag ☠️ Done
+
 import { Todo } from "../models/todo.model.js";
 
 /**
@@ -26,32 +28,51 @@ export async function createTodo(req, res, next) {
 export async function listTodos(req, res, next) {
   try {
     // Your code here
+    let todoList;
     const { page = 1, limit = 10, completed, priority, search } = req.query;
     const pageNum = Number(page);
     const limitNum = Number(limit);
 
-    filter = {};
-    if (completed !== undefined) filter.completed = completed === "true";
-    if (priority) filter.priority = priority;
-    if (search) filter.title = { $regex: search, $options: "i" };
+    let filter = {};
+    if (completed !== undefined) {
+      filter.completed = completed === "true";
+    }
+    if (priority) {
+      filter.priority = priority;
+    }
+    if (search) {
+      filter.title = { $regex: search, $options: "i" };
+    }
 
     const total = await Todo.countDocuments(filter);
+    if (total === 0) {
+      return res.status(200).json({
+        data: [],
+        meta: {
+          pages: 0,
+          total: 0,
+          page,
+          limit,
+        },
+      });
+    }
     const pages = Math.ceil(total / limitNum);
 
-    const todoList = await Todo.find(filter)
+    todoList = await Todo.find(filter)
+      .sort({ createdAt: -1 })
       .skip((pageNum - 1) * limitNum)
       .limit(limitNum);
     const paginatedData = {
       data: todoList,
       meta: {
         total,
-        page,
-        limit,
+        page: pageNum,
+        limit: limitNum,
         pages,
       },
     };
 
-    return res.json(paginatedData)
+    return res.status(200).json(paginatedData);
   } catch (error) {
     next(error);
   }
@@ -65,9 +86,12 @@ export async function listTodos(req, res, next) {
 export async function getTodo(req, res, next) {
   try {
     const id = req.params.id;
-    if (!id) return res.status(404);
+    if (!id)
+      return res.status(404).json({ error: { message: "Todo not found" } });
 
     const todo = await Todo.findById(id);
+    if (!todo)
+      return res.status(404).json({ error: { message: "Todo not found" } });
 
     return res.status(200).json(todo);
 
@@ -85,9 +109,16 @@ export async function getTodo(req, res, next) {
 export async function updateTodo(req, res, next) {
   try {
     const id = req.params.id;
-    if (!id) return res.status(404);
+    if (!id)
+      return res.status(404).json({ error: { message: "Todo not found" } });
 
-    const todo = await Todo.findByIdAndUpdate(id, req.body, { new: true, runValidators: true })
+    const todo = await Todo.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    if (!todo) {
+      return res.status(404).json({ error: { message: "Todo not found" } });
+    }
     return res.status(200).json(todo);
 
     // Your code here
@@ -104,14 +135,17 @@ export async function updateTodo(req, res, next) {
 export async function toggleTodo(req, res, next) {
   try {
     const id = req.params.id;
-    if (!id) return res.status(404);
+    if (!id)
+      return res.status(404).json({ error: { message: "Todo not found" } });
 
     const todo = await Todo.findById(id);
+    if (!todo)
+      return res.status(404).json({ error: { message: "Todo not found" } });
     todo.completed = !todo.completed;
 
-    await Todo.save();
+    await todo.save();
 
-    return res.status(201).json("Toggled the completed");
+    return res.status(200).json(todo);
     // Your code here
   } catch (error) {
     next(error);
@@ -127,10 +161,10 @@ export async function deleteTodo(req, res, next) {
   try {
     // Your code here
     const id = req.params.id;
-    if (!id) return res.status(404);
-
     const todo = await Todo.findByIdAndDelete(id);
-    return res.status(204).json(todo);
+    if (!todo)
+      return res.status(404).json({ error: { message: "Todo not found" } });
+    return res.status(204).send();
   } catch (error) {
     next(error);
   }

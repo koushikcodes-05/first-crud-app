@@ -1,3 +1,7 @@
+
+// Flag ☠️ Done
+
+
 import express from "express";
 import {
   createTodo,
@@ -7,6 +11,7 @@ import {
   toggleTodo,
   deleteTodo,
 } from "../controllers/todo.controller.js";
+import { validateObjectId } from "../middlewares/validateObjectId.middleware.js";
 
 const router = express.Router();
 
@@ -23,8 +28,8 @@ const router = express.Router();
 
 router.post("/", createTodo)
 router.get("/", listTodos)
-router.get("/:id", getTodo)
-router.patch("/:id", updateTodo)
-router.patch("/:id/toggle", toggleTodo)
-router.delete("/:id", deleteTodo)
+router.get("/:id",validateObjectId, getTodo)
+router.patch("/:id",validateObjectId, updateTodo)
+router.patch("/:id/toggle",validateObjectId, toggleTodo)
+router.delete("/:id",validateObjectId, deleteTodo)
 export default router;
